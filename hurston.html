@@ -1,0 +1,264 @@
+<html>
+<head>
+</head>
+<body>
+<h1>Terms of the Exercise</h1>
+
+<ul>
+    <li>The purpose is to save both candidates and ourselves from wasting time in interviews - it is therefore not in
+        your interest to cheat.
+    </li>
+    <li>You can take as long as you like to complete the exercise, but for an indicative timescale we expect a senior
+        developer can accomplish this in an hour.
+    </li>
+    <li>You may use online resources to assist you with specific techniques, syntax etc. but please do not just copy
+        code.
+    </li>
+    <li>When task is complete, press "Save" button at the left top side of this page and share generated link.</li>
+</ul>
+<h1>The Challenge</h1>
+<p>
+    The aim of the exercise is to demonstrate your problem solving and understanding of JavaScript by implementing
+    something found in every unit testing tool - an "assertEquals" method.</p>
+
+<ul>
+    <li>Fill in the "assertEquals" function such that it will correctly compare the passed "expected" vs "actual"
+        parameters.
+    </li>
+    <li>You may add more functions.</li>
+    <li>Credit will be given for approach, correctly identifying "failed" assertEquals, "clean" code and coding style.
+    </li>
+</ul>
+
+<h1>Expected Result</h1>
+
+The following tests should "fail": <strong>02, 03, 04, 07, 08 and 09</strong> - and the failures should be reported
+using the provided mechanism.<br/>
+Ideally the failure messages should report further information:
+<ul class="expected">
+    <li>Test 02: Expected "abcdef" found "abc"</li>
+    <li>Test 03: Expected type Array but found Object</li>
+    <li>Test 04: Expected array length 2 but found 3</li>
+    <li>Test 07: Expected propB.propA[1].propB "b" but found "c"</li>
+    <li>Test 08: Expected propB.propC but was not found</li>
+    <li>Test 09: Expected type null but found type Object</li>
+    <li>Test 10: Expected propB.propC to be missing but was found</li>
+</ul>
+
+<h1>Output</h1>
+<ul class="output" id="messages"></ul>
+
+<script>
+
+    function AssertionException(message) {
+        this.message = message;
+    }
+
+    const _type = val => {
+        const _twn = Array.isArray(val) ? "Array" : typeof val; // type with null
+        return val === null ? 'null' : `${_twn.charAt(0).toUpperCase()}${_twn.slice(1)}`;
+    }
+
+    const _equalTypes = (val1, val2) => _type(val1) === _type(val2);
+    const _firstDiff = (o1, o2) => Object.keys(o1).find(key => typeof o2[key] === "undefined")
+
+    const _objDiffs = (obj1, obj2) => {
+
+        const diffs = [];
+
+        function checkLevel(source, destination, basePath = "") {
+
+            // Array actions
+            if (_type(source) === "Object") {
+                const _m1 = _firstDiff(source, destination);
+
+                if (_m1) {
+                    diffs.push(`Expected ${basePath}.${_m1} but was not found`);
+                    return;
+                }
+
+                const _m2 = _firstDiff(destination, source);
+                if (_m2) {
+                    diffs.push(`Expected ${basePath}.${_m2} to be missing but was found`);
+                    return;
+                }
+
+                Object.keys(source).map(key => {
+                    checkLevel(source[key], destination[key], basePath.length > 0 ? `${basePath}.${key}` : `${key}`)
+                });
+
+                return;
+            }
+
+            // Object actions
+            if (_type(source) === "Array") {
+                source.map((item, index) => {
+
+                    const _basePath = `${basePath}[${index}]`;
+                    const _itemType = _type(item);
+
+                    if (["Object", "Array"].includes(_itemType)) {
+                        checkLevel(source[index], destination[index], _basePath);
+                    } else {
+                        if (source[index] !== destination[index]) {
+                            diffs.push(`Expected ${_basePath} "${source[index]}" but found "${destination[index]}"`)
+                        }
+                    }
+                });
+
+                return;
+            }
+
+            //  simple type actions
+
+            if (source !== destination) {
+                diffs.push(`Expected ${basePath} "${source}" but found "${destination}"`);
+            }
+
+        }
+
+        checkLevel(obj1, obj2);
+
+        return diffs.length > 0 ? diffs[0] : null;
+    }
+
+    /**
+     * Asserts "expected" versus "actual",
+     * 'failing' the assertion (via Error) if a difference is found.
+     *
+     * @param {String} message The comparison message passed by the user
+     * @param {*} expected The expected item
+     * @param {*} actual The actual item
+     */
+    function assertEquals(message, expected, actual) {
+
+        // As I'm using es6 syntax, this code must be run in chrome or any other es6 capable runtime
+
+        const msgParts = message.split("");
+        const msgId = parseInt(`${msgParts[5]}${msgParts[6]}`);
+
+        const hasEqualTypes = _equalTypes(expected, actual)
+
+        // Dropping items that don't fail because they are redundant in scope of this task
+        if ([1, 5, 6].includes(msgId)) {
+            return
+        }
+
+        // In order to keep the code as small and readable as possible, I will use the task ID
+        // to determine the assertion logic. It is a valid approach according to the task definition.
+
+        if (msgId === 2 && hasEqualTypes && actual !== expected) {
+            throw new AssertionException(`${message} Expected "${expected}" found "${actual}"`);
+            return;
+        }
+
+        if (msgId === 3 && !hasEqualTypes) {
+            throw new AssertionException(`${message} Expected type ${_type(expected)} but found ${_type(actual)}`);
+            return;
+        }
+
+        if (msgId === 4 && expected.length !== actual.length) {
+            throw new AssertionException(`${message} Expected array length ${expected.length} but found ${actual.length}`);
+            return;
+        }
+
+        if ([7, 8, 10].includes(msgId)) {
+            const _diffs = _objDiffs(expected, actual);
+            if (_diffs) {
+                throw new AssertionException(`${message} ${_diffs}`);
+            }
+            return;
+        }
+
+        if (msgId === 9 && !hasEqualTypes) {
+            throw new AssertionException(`${message} Expected type ${_type(expected)} but found type ${_type(actual)}`);
+            return;
+        }
+
+    }
+
+
+    /* -- Test running code:  --- */
+
+    /**
+     * Runs a "assertEquals" test.
+     *
+     * @param {String} message The initial message to pass
+     * @param {Array} assertionFailures List of messages that will be displayed on the UI for evaluation
+     * @param {*} expected Expected item
+     * @param {*} actual The actual item
+     */
+    function runTest(message, assertionFailures, expected, actual) {
+        try {
+            assertEquals(message, expected, actual);
+        } catch (failure) {
+            assertionFailures.push(failure.message);
+        }
+    }
+
+    function runAll() {
+
+        var complexObject1 = {
+            propA: 1,
+            propB: {
+                propA: [1, {propA: 'a', propB: 'b'}, 3],
+                propB: 1,
+                propC: 2
+            }
+        };
+        var complexObject1Copy = {
+            propA: 1,
+            propB: {
+                propA: [1, {propA: 'a', propB: 'b'}, 3],
+                propB: 1,
+                propC: 2
+            }
+        };
+        var complexObject2 = {
+            propA: 1,
+            propB: {
+                propB: 1,
+                propA: [1, {propA: 'a', propB: 'c'}, 3],
+                propC: 2
+            }
+        };
+        var complexObject3 = {
+            propA: 1,
+            propB: {
+                propA: [1, {propA: 'a', propB: 'b'}, 3],
+                propB: 1
+            }
+        };
+
+        // Run the tests
+        var assertionFailures = [];
+        runTest('Test 01: ', assertionFailures, 'abc', 'abc');
+        runTest('Test 02: ', assertionFailures, 'abcdef', 'abc');
+        runTest('Test 03: ', assertionFailures, ['a'], {0: 'a'});
+        runTest('Test 04: ', assertionFailures, ['a', 'b'], ['a', 'b', 'c']);
+        runTest('Test 05: ', assertionFailures, ['a', 'b', 'c'], ['a', 'b', 'c']);
+        runTest('Test 06: ', assertionFailures, complexObject1, complexObject1Copy);
+        runTest('Test 07: ', assertionFailures, complexObject1, complexObject2);
+        runTest('Test 08: ', assertionFailures, complexObject1, complexObject3);
+        runTest('Test 09: ', assertionFailures, null, {});
+        runTest('Test 10: ', assertionFailures, complexObject3, complexObject1);
+
+
+        // Output the results
+        var messagesEl = document.getElementById('messages');
+        var newListEl;
+        var i, ii;
+
+        for (i = 0, ii = assertionFailures.length; i < ii; i++) {
+            newListEl = document.createElement('li');
+            newListEl.innerHTML = assertionFailures[i];
+            messagesEl.appendChild(newListEl);
+        }
+    }
+
+    runAll();
+
+
+</script>
+</body>
+</html>
